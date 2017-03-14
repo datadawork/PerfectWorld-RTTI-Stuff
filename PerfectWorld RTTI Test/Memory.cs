@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32.SafeHandles;
 using static PerfectWorld_RTTI_Test.Native;
 
@@ -20,11 +21,11 @@ namespace PerfectWorld_RTTI_Test {
 
         #region Read
 
-        public byte[] ReadBytes(IntPtr dwAddress, int count) {
+        public byte[] ReadBytes(IntPtr dwAddress, int count, bool throwEx = false) {
             var buffer = new byte[count];
             var ret = new byte[count];
             if (!ReadProcessMemory(Handle, dwAddress, buffer, count, out IntPtr bytesRead)) {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+                if (throwEx) throw new Win32Exception(Marshal.GetLastWin32Error());
             }
             Array.Copy(buffer, ret, bytesRead.ToInt32());
             return ret;
@@ -76,6 +77,15 @@ namespace PerfectWorld_RTTI_Test {
             var size = Marshal.SizeOf(typeof(T));
             for (var i = 0; i < count; i++) {
                 ret[i] = Read<T>(dwAddress + (i * size));
+            }
+            return ret;
+        }
+
+        public string ReadString(IntPtr dwAddress, Encoding encoding, int maxLength = 512) {
+            var buffer = ReadBytes(dwAddress, maxLength);
+            var ret = encoding.GetString(buffer);
+            if (ret.IndexOf('\0') != -1) {
+                ret = ret.Remove(ret.IndexOf('\0'));
             }
             return ret;
         }

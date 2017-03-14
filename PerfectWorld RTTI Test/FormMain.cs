@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -13,7 +14,10 @@ namespace PerfectWorld_RTTI_Test
         
         private void FormMain_Load(object sender, EventArgs e) {
             Logging.SetLogControl(textBoxLog);
-            if(!Core.Load()) return;
+            if (!Core.Load()) {
+                Logging.Log("Failed to Load Core");
+                return;
+            }
             Logging.Log($"Process: {Core.Memory.Process.ProcessName}");
             var baseAddr = Core.GetBaseAddress(true);
             if(baseAddr != IntPtr.Zero) textBoxAddress.Text = $"{baseAddr.ToInt32():X8}";
@@ -34,7 +38,13 @@ namespace PerfectWorld_RTTI_Test
         }
 
         private void bWorkerMain_DoWork(object sender, DoWorkEventArgs e) {
-            while(!bWorkerMain.CancellationPending) Thread.Sleep(10);
+            //while(!bWorkerMain.CancellationPending) Thread.Sleep(10);
+            var addr = Core.Memory.Read<IntPtr>(Core.GetBaseAddress());
+            RttiInfo.RttiCompleteObjectLocator x;
+            for (var i = 0; i < 0x1FFF; i += 4) {
+                x = RttiInfo.GetCompleteObjectLocator(addr + i);
+                if(x != null)Logging.Log($"{x.pTypeDescriptor.Name}, {x.pTypeDescriptor.Name.Length}");
+            }
         }
 
         private void bWorkerMain_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
