@@ -7,6 +7,12 @@ namespace PerfectWorld_RTTI_Test {
         public IntPtr BaseAddress;
         public RttiCompleteObjectLocator ObjectLocator;
 
+        public string RawName => ObjectLocator.Type.Name;
+        public string DemangledName => Helper.DemangleName(RawName);
+        public string Name => DemangledName.Replace("class ", "");
+
+        public BaseClass[] BaseClassArray => ObjectLocator.ClassHierarchy.BaseClassArray;
+
         public RttiObject(IntPtr dwAddress, bool isPointer = true) {
             if (isPointer) dwAddress = Core.Memory.Read<IntPtr>(dwAddress);
             var vtable = Core.Memory.Read<IntPtr>(dwAddress);
@@ -19,7 +25,7 @@ namespace PerfectWorld_RTTI_Test {
             var name = ObjectLocator.Type.Name;
             if (string.IsNullOrWhiteSpace(name) || name.Length < 3) return false;
             var num = ObjectLocator.ClassHierarchy.numBaseClasses;
-            if (num < 1 || num > 0xFF) return false;
+            if (num < 1 || num > 0x1F) return false;
             return true;
         }
 
@@ -33,11 +39,12 @@ namespace PerfectWorld_RTTI_Test {
             public RttiClassHierarchyDescriptor ClassHierarchy;
 
             public RttiCompleteObjectLocator(IntPtr dwAddress) {
-                Signature = Core.Memory.Read<uint>(dwAddress);
-                VFTableOffset = Core.Memory.Read<uint>(dwAddress + 0x4);
-                cdOffset = Core.Memory.Read<uint>(dwAddress + 0x8);
-                Type = new TypeDescriptor(Core.Memory.Read<IntPtr>(dwAddress + 0xC));
-                ClassHierarchy = new RttiClassHierarchyDescriptor(Core.Memory.Read<IntPtr>(dwAddress + 0x10));
+                var bStruct = Core.Memory.Read<byte>(dwAddress, 0x14);
+                Signature = BitConverter.ToUInt32(bStruct, 0);
+                VFTableOffset = BitConverter.ToUInt32(bStruct, 0x4);
+                cdOffset = BitConverter.ToUInt32(bStruct, 0x8);
+                Type = new TypeDescriptor((IntPtr)BitConverter.ToInt32(bStruct, 0xC));
+                ClassHierarchy = new RttiClassHierarchyDescriptor((IntPtr)BitConverter.ToInt32(bStruct, 0x10));
             }
         }
 
@@ -55,23 +62,24 @@ namespace PerfectWorld_RTTI_Test {
             public uint Signature;
             public uint Attributes;
             public uint numBaseClasses;
-            public RttiBaseClassDescriptor[] BaseClassArray;
+            public BaseClass[] BaseClassArray;
 
             public RttiClassHierarchyDescriptor(IntPtr dwAddress) {
-                Signature = Core.Memory.Read<uint>(dwAddress);
-                Attributes = Core.Memory.Read<uint>(dwAddress + 0x4);
-                numBaseClasses = Core.Memory.Read<uint>(dwAddress + 0x8);
-                var baseArray = Core.Memory.Read<IntPtr>(dwAddress + 0xC);
-                if (numBaseClasses > 1 && numBaseClasses < 0xFF) {
-                    BaseClassArray = new RttiBaseClassDescriptor[numBaseClasses-1];
+                var bStruct = Core.Memory.Read<byte>(dwAddress, 0x10);
+                Signature = BitConverter.ToUInt32(bStruct, 0);
+                Attributes = BitConverter.ToUInt32(bStruct, 0x4);
+                numBaseClasses = BitConverter.ToUInt32(bStruct, 0x8);
+                var baseArray = (IntPtr)BitConverter.ToInt32(bStruct, 0xC);
+                if (numBaseClasses > 1 && numBaseClasses < 0x1F) {
+                    BaseClassArray = new BaseClass[numBaseClasses-1];
                     for (var i = 1; i < numBaseClasses; i++) {
                         var addr = Core.Memory.Read<IntPtr>(baseArray + (i * 0x4));
-                        BaseClassArray[i-1] = new RttiBaseClassDescriptor(addr);
+                        BaseClassArray[i-1] = new BaseClass(addr);
                     }
                     BaseClassArray = BaseClassArray.Where(bc => 
                         !string.IsNullOrWhiteSpace(bc.Type.Name) && bc.Type.Name.Length >= 3
                     ).ToArray();
-                } else BaseClassArray = new RttiBaseClassDescriptor[0];
+                } else BaseClassArray = new BaseClass[0];
             }
         }
 
@@ -80,6 +88,20 @@ namespace PerfectWorld_RTTI_Test {
             public TypeDescriptor Type;
 
             public RttiBaseClassDescriptor(IntPtr dwAddress) {
+                Type = new TypeDescriptor(Core.Memory.Read<IntPtr>(dwAddress));
+                numContainedClasses = Core.Memory.Read<uint>(dwAddress + 0x4);
+            }
+        }
+
+        public class BaseClass {
+            public uint numContainedClasses;
+            public TypeDescriptor Type;
+
+            public string RawName => Type.Name;
+            public string DemangledName => Helper.DemangleName(RawName);
+            public string Name => DemangledName.Replace("class ", "");
+
+            public BaseClass(IntPtr dwAddress) {
                 Type = new TypeDescriptor(Core.Memory.Read<IntPtr>(dwAddress));
                 numContainedClasses = Core.Memory.Read<uint>(dwAddress + 0x4);
             }

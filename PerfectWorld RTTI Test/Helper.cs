@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Runtime.InteropServices;
+using System.Text;
+using static PerfectWorld_RTTI_Test.Native;
 
 namespace PerfectWorld_RTTI_Test {
     public static class Helper {
@@ -23,6 +26,18 @@ namespace PerfectWorld_RTTI_Test {
 
         public static bool isValidClassName(string name) {
             return !string.IsNullOrWhiteSpace(name) && name.Length >= 3;
+        }
+
+        public static string DemangleName(string name) {
+            if (!name.StartsWith(".")) return "";
+            name = "??_R0" + name.Substring(1, name.Length-1) + "@8";
+            var builder = new StringBuilder(255);
+            UnDecorateSymbolName(name, builder, builder.Capacity, UnDecorateFlags.UNDNAME_COMPLETE);
+            var outname = builder.ToString();
+            var i = outname.IndexOf("`RTTI Type Descriptor'", StringComparison.Ordinal);
+            if (i == -1) return "";
+            outname = outname.Substring(0, i-1);
+            return outname;
         }
     }
 }
