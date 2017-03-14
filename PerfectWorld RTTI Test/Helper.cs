@@ -20,5 +20,9 @@ namespace PerfectWorld_RTTI_Test {
             Array.Reverse(bytes);
             return BitConverter.ToInt32(bytes, 0);
         }
+
+        public static bool isValidClassName(string name) {
+            return !string.IsNullOrWhiteSpace(name) && name.Length >= 3;
+        }
     }
 }

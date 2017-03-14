@@ -1,7 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace PerfectWorld_RTTI_Test
@@ -39,11 +37,14 @@ namespace PerfectWorld_RTTI_Test
 
         private void bWorkerMain_DoWork(object sender, DoWorkEventArgs e) {
             //while(!bWorkerMain.CancellationPending) Thread.Sleep(10);
-            var addr = Core.Memory.Read<IntPtr>(Core.GetBaseAddress());
-            RttiInfo.RttiCompleteObjectLocator x;
+            var addr = Core.GetBaseAddress();
+            if (e.Argument != null) addr = (IntPtr)e.Argument;
+            Logging.Clear();
+
             for (var i = 0; i < 0x1FFF; i += 4) {
-                x = RttiInfo.GetCompleteObjectLocator(addr + i);
-                if(x != null)Logging.Log($"{x.pTypeDescriptor.Name}, {x.pTypeDescriptor.Name.Length}");
+                var x = new RttiObject(addr+i);
+                if(!x.isValid()) continue;
+                Logging.Log($"{x.ObjectLocator.Type.Name}");
             }
         }
 
