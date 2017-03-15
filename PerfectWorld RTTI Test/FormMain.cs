@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 
 namespace PerfectWorld_RTTI_Test
 {
     public partial class FormMain : Form {
+
+        private RttiTreeNode RootNode = new RttiTreeNode();
+        private int MaxOffset = 0x1FFFF;
 
         public FormMain() {
             InitializeComponent();
@@ -26,13 +31,34 @@ namespace PerfectWorld_RTTI_Test
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e) {
             if(Core.isLoaded) Core.Unload();
         }
+        
+        private void textBoxLog_TextChanged(object sender, EventArgs e) {
+            textBoxLog.SelectionStart = textBoxLog.Text.Length;
+            textBoxLog.ScrollToCaret();
+        }
 
         private void buttonStartStop_Click(object sender, EventArgs e) {
+            if(!Core.isLoaded) return;
             if (!bWorkerMain.IsBusy && buttonStartStop.Text != "Stop") {
                 IntPtr addr;
                 if (int.TryParse(textBoxAddress.Text, out int addrInt)) addr = (IntPtr) addrInt;
                 else addr = Core.GetBaseAddress();
-                bWorkerMain.RunWorkerAsync(addr);
+
+                if (textBoxOffset.Text.Contains("0x")) textBoxOffset.Text = textBoxOffset.Text.Replace("0x", "");
+                if (int.TryParse(textBoxOffset.Text, NumberStyles.HexNumber, new NumberFormatInfo(), out int maxoff))
+                    MaxOffset = maxoff;
+                else {
+                    MaxOffset = 0x1FFFF;
+                    textBoxOffset.Text = "1FFFF";
+                }
+                RootNode = new RttiTreeNode {
+                    RttiObject = new RttiObject(addr, -1, false),
+                    Text = $"{addr.ToInt32():X8} Base Address"
+                };
+                treeViewClassTree.Nodes.Clear();
+                treeViewClassTree.Nodes.Add(RootNode);
+                RootNode.Expand();
+                //bWorkerMain.RunWorkerAsync(RootNode);
                 buttonStartStop.Text = "Stop";
             } else {
                 if (bWorkerMain.CancellationPending) return;
@@ -41,40 +67,44 @@ namespace PerfectWorld_RTTI_Test
         }
 
         private void bWorkerMain_DoWork(object sender, DoWorkEventArgs e) {
+            if(!Core.isLoaded) return;
             if (e.Argument is null) {
                 e.Result = null;
                 return;
             }
-            if (e.Argument is IntPtr addr) {
-                var oList = new List<RttiObject>();
-                for (var i = 0; i < 0x1FFF; i += 4) {
-                    var x = new RttiObject(addr + i);
+            if (e.Argument is RttiTreeNode node) {
+                var nodeList = new List<RttiTreeNode>();
+                var sw = Stopwatch.StartNew();
+                Logging.Log($"Searching {MaxOffset / 4} addresses ...");
+                sw.Start();
+                for (var i = 0; i < MaxOffset; i += 4) {
+                    var x = new RttiObject(node.RttiObject.BaseAddress + i, i);
                     if (!x.isValid()) continue;
-                    oList.Add(x);
+                    nodeList.Add(new RttiTreeNode(x));
                 }
-                e.Result = oList;
+                sw.Stop();
+                Logging.Log($"Found {nodeList.Count} classes");
+                Logging.Log($"Time: {sw.Elapsed.TotalMinutes:00}:{sw.Elapsed.Seconds:00}.{sw.Elapsed.Milliseconds:000}");
+                Logging.Log($"{new string('-', 50)}");
+                e.Result = new object[]{node, nodeList};
                 return;
             }
             e.Result = null;
         }
 
         private void bWorkerMain_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
-            buttonStartStop.Text = "Start";
-            var list = e.Result as List<RttiObject>;
-            if (list == null) return;
-            treeViewClassTree.Nodes.Clear();
-            foreach (var obj in list) {
-                treeViewClassTree.Nodes.Add(new RttiTreeNode(obj));
+            buttonStartStop.Text = "Init";
+            var res = e.Result as object[];
+            if (res?.Length == 2) {
+                var node = (RttiTreeNode)res[0];
+                var list = (List<RttiTreeNode>)res[1];
+                RttiTreeNode[] arr = list.ToArray();
+                foreach (var treeNode in list) {
+                    node.Nodes.Add(treeNode);
+                }
+                node.FirstNode.Remove();
+                node.Expand();
             }
-        }
-
-        private List<RttiObject> GetChildObjects(RttiObject parentObj) {
-            var oList = new List<RttiObject>();
-            for (var i = 0; i < 0x1FFF; i += 4) {
-                var x = new RttiObject(parentObj.BaseAddress + i, i);
-                oList.Add(x);
-            }
-            return oList.Where(r=>r.isValid()).ToList();
         }
 
         private void treeViewClassTree_BeforeExpand(object sender, TreeViewCancelEventArgs e) {
@@ -83,12 +113,20 @@ namespace PerfectWorld_RTTI_Test
                 node?.Nodes.Clear();
                 return;
             }
-            if(!node.Nodes.ContainsKey("dummy")) return;
-            node.Nodes.Clear();
+
+            //Logging.Log(node.GetPointerPath());
+
+            if (!node.Nodes.ContainsKey("dummy")) return;
+            node.FirstNode.Text = "Loading ...";
+            buttonStartStop.Text = "Stop";
+            bWorkerMain.RunWorkerAsync(node);
+            /*
             foreach (var child in GetChildObjects(node.RttiObject)) {
                 node.Nodes.Add(new RttiTreeNode(child));
             }
-            Logging.Log(node.GetPointerPath());
+            */
+            
         }
+
     }
 }

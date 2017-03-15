@@ -6,7 +6,7 @@ namespace PerfectWorld_RTTI_Test {
         public RttiObject RttiObject { get; set; }
 
         public RttiTreeNode(RttiObject rttiObject) {
-            Text = rttiObject.Offset > 0 ? $"{rttiObject.Offset:X4} {rttiObject.Name}" : rttiObject.Name;
+            Text = rttiObject.Offset != -1 ? $"{rttiObject.Offset:X4} {rttiObject.Name}" : rttiObject.Name;
             RttiObject = rttiObject;
             Nodes.Add(new TreeNode(Text) {Name = "dummy"});
         }
@@ -21,12 +21,12 @@ namespace PerfectWorld_RTTI_Test {
                 $"0x{RttiObject.BaseAddress.ToInt32():X8}" :
                 $"0x{RttiObject.Offset:X}";
             while (parent != null) {
-                path = parent.RttiObject.Offset != 0 ?
+                path = parent.RttiObject.Offset != -1 ?
                     $"0x{parent.RttiObject.Offset:X} + {path}" :
                     $"0x{parent.RttiObject.BaseAddress.ToInt32():X8} + {path}";
                 parent = (RttiTreeNode)parent.Parent;
             }
-            return path;
+            return path.Replace(" + 0x0", "");
         }
     }
 }

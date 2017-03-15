@@ -37,6 +37,8 @@
             this.bWorkerMain = new System.ComponentModel.BackgroundWorker();
             this.textBoxAddress = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
+            this.textBoxOffset = new System.Windows.Forms.TextBox();
             this.contextLog.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -51,6 +53,7 @@
             this.textBoxLog.Size = new System.Drawing.Size(345, 240);
             this.textBoxLog.TabIndex = 0;
             this.textBoxLog.Text = "";
+            this.textBoxLog.TextChanged += new System.EventHandler(this.textBoxLog_TextChanged);
             // 
             // contextLog
             // 
@@ -80,7 +83,7 @@
             this.buttonStartStop.Name = "buttonStartStop";
             this.buttonStartStop.Size = new System.Drawing.Size(75, 40);
             this.buttonStartStop.TabIndex = 2;
-            this.buttonStartStop.Text = "Start";
+            this.buttonStartStop.Text = "Init";
             this.buttonStartStop.UseVisualStyleBackColor = true;
             this.buttonStartStop.Click += new System.EventHandler(this.buttonStartStop_Click);
             // 
@@ -98,6 +101,7 @@
             this.textBoxAddress.Name = "textBoxAddress";
             this.textBoxAddress.Size = new System.Drawing.Size(124, 20);
             this.textBoxAddress.TabIndex = 5;
+            this.textBoxAddress.WordWrap = false;
             // 
             // label2
             // 
@@ -108,11 +112,32 @@
             this.label2.TabIndex = 4;
             this.label2.Text = "Base Address:";
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(366, 52);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(64, 13);
+            this.label1.TabIndex = 6;
+            this.label1.Text = "Max. Offset:";
+            // 
+            // textBoxOffset
+            // 
+            this.textBoxOffset.Location = new System.Drawing.Point(447, 49);
+            this.textBoxOffset.MaxLength = 8;
+            this.textBoxOffset.Name = "textBoxOffset";
+            this.textBoxOffset.Size = new System.Drawing.Size(124, 20);
+            this.textBoxOffset.TabIndex = 7;
+            this.textBoxOffset.Text = "1FFFF";
+            this.textBoxOffset.WordWrap = false;
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(712, 417);
+            this.Controls.Add(this.textBoxOffset);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.textBoxAddress);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.buttonStartStop);
@@ -141,6 +166,8 @@
         private System.Windows.Forms.ToolStripMenuItem contextLogClear;
         private System.Windows.Forms.TextBox textBoxAddress;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox textBoxOffset;
     }
 }
 

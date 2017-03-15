@@ -16,8 +16,9 @@ namespace PerfectWorld_RTTI_Test {
 
         public BaseClass[] BaseClassArray => ObjectLocator.ClassHierarchy.BaseClassArray;
 
-        public RttiObject(IntPtr dwAddress, int dwOffset = 0, bool isPointer = true) {
-            if (isPointer) dwAddress = Core.Memory.Read<IntPtr>(dwAddress);
+        public RttiObject(IntPtr Address, int dwOffset = -1, bool isPointer = true) {
+            var dwAddress = Address;
+            if (isPointer) dwAddress = Core.Memory.Read<IntPtr>(Address);
             BaseAddress = dwAddress;
             Offset = dwOffset;
             if (dwAddress == IntPtr.Zero || dwAddress.ToInt32() <= 0x1000) return;
