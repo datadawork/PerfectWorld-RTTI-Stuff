@@ -72,6 +72,7 @@
             this.treeViewClassTree.Name = "treeViewClassTree";
             this.treeViewClassTree.Size = new System.Drawing.Size(360, 417);
             this.treeViewClassTree.TabIndex = 1;
+            this.treeViewClassTree.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.treeViewClassTree_BeforeExpand);
             // 
             // buttonStartStop
             // 

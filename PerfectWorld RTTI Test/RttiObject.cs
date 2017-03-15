@@ -1,10 +1,13 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace PerfectWorld_RTTI_Test {
     public class RttiObject {
         public IntPtr BaseAddress;
+        public int Offset;
         public RttiCompleteObjectLocator ObjectLocator;
 
         public string RawName => ObjectLocator.Type.Name;
@@ -13,19 +16,22 @@ namespace PerfectWorld_RTTI_Test {
 
         public BaseClass[] BaseClassArray => ObjectLocator.ClassHierarchy.BaseClassArray;
 
-        public RttiObject(IntPtr dwAddress, bool isPointer = true) {
+        public RttiObject(IntPtr dwAddress, int dwOffset = 0, bool isPointer = true) {
             if (isPointer) dwAddress = Core.Memory.Read<IntPtr>(dwAddress);
+            BaseAddress = dwAddress;
+            Offset = dwOffset;
+            if (dwAddress == IntPtr.Zero || dwAddress.ToInt32() <= 0x1000) return;
             var vtable = Core.Memory.Read<IntPtr>(dwAddress);
             var locator = Core.Memory.Read<IntPtr>(vtable - 0x4);
-            BaseAddress = dwAddress;
-            ObjectLocator = new RttiCompleteObjectLocator(locator);
+            if(locator != IntPtr.Zero)
+                ObjectLocator = new RttiCompleteObjectLocator(locator);
         }
 
         public bool isValid() {
-            var name = ObjectLocator.Type.Name;
-            if (string.IsNullOrWhiteSpace(name) || name.Length < 3) return false;
-            var num = ObjectLocator.ClassHierarchy.numBaseClasses;
-            if (num < 1 || num > 0x1F) return false;
+            var name = ObjectLocator?.Type?.Name;
+            if (string.IsNullOrWhiteSpace(name) || !name.StartsWith(".", StringComparison.Ordinal)) return false;
+            var num = ObjectLocator?.ClassHierarchy?.numBaseClasses;
+            if (num == null || num < 1 || num > 32) return false;
             return true;
         }
 
@@ -39,6 +45,7 @@ namespace PerfectWorld_RTTI_Test {
             public RttiClassHierarchyDescriptor ClassHierarchy;
 
             public RttiCompleteObjectLocator(IntPtr dwAddress) {
+                if (dwAddress == IntPtr.Zero || dwAddress.ToInt32() <= 0x1000) return;
                 var bStruct = Core.Memory.Read<byte>(dwAddress, 0x14);
                 Signature = BitConverter.ToUInt32(bStruct, 0);
                 VFTableOffset = BitConverter.ToUInt32(bStruct, 0x4);
@@ -53,6 +60,7 @@ namespace PerfectWorld_RTTI_Test {
             public string Name;
 
             public TypeDescriptor(IntPtr dwAddress) {
+                if (dwAddress == IntPtr.Zero || dwAddress.ToInt32() <= 0x1000) return;
                 pVFTable = Core.Memory.Read<IntPtr>(dwAddress);
                 Name = Core.Memory.ReadString(dwAddress + 0x8, Encoding.ASCII);
             }
@@ -65,6 +73,7 @@ namespace PerfectWorld_RTTI_Test {
             public BaseClass[] BaseClassArray;
 
             public RttiClassHierarchyDescriptor(IntPtr dwAddress) {
+                if (dwAddress == IntPtr.Zero || dwAddress.ToInt32() <= 0x1000) return;
                 var bStruct = Core.Memory.Read<byte>(dwAddress, 0x10);
                 Signature = BitConverter.ToUInt32(bStruct, 0);
                 Attributes = BitConverter.ToUInt32(bStruct, 0x4);
@@ -80,16 +89,6 @@ namespace PerfectWorld_RTTI_Test {
                         !string.IsNullOrWhiteSpace(bc.Type.Name) && bc.Type.Name.Length >= 3
                     ).ToArray();
                 } else BaseClassArray = new BaseClass[0];
-            }
-        }
-
-        public class RttiBaseClassDescriptor {
-            public uint numContainedClasses;
-            public TypeDescriptor Type;
-
-            public RttiBaseClassDescriptor(IntPtr dwAddress) {
-                Type = new TypeDescriptor(Core.Memory.Read<IntPtr>(dwAddress));
-                numContainedClasses = Core.Memory.Read<uint>(dwAddress + 0x4);
             }
         }
 

@@ -29,7 +29,7 @@ namespace PerfectWorld_RTTI_Test {
         }
 
         public static string DemangleName(string name) {
-            if (!name.StartsWith(".")) return "";
+            if (!name.StartsWith(".", StringComparison.Ordinal)) return "";
             name = "??_R0" + name.Substring(1, name.Length-1) + "@8";
             var builder = new StringBuilder(255);
             UnDecorateSymbolName(name, builder, builder.Capacity, UnDecorateFlags.UNDNAME_COMPLETE);
