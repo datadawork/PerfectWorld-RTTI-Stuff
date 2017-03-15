@@ -39,6 +39,7 @@
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.textBoxOffset = new System.Windows.Forms.TextBox();
+            this.progressBarWorker = new System.Windows.Forms.ProgressBar();
             this.contextLog.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -50,7 +51,7 @@
             this.textBoxLog.Name = "textBoxLog";
             this.textBoxLog.ReadOnly = true;
             this.textBoxLog.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.textBoxLog.Size = new System.Drawing.Size(345, 240);
+            this.textBoxLog.Size = new System.Drawing.Size(334, 228);
             this.textBoxLog.TabIndex = 0;
             this.textBoxLog.Text = "";
             this.textBoxLog.TextChanged += new System.EventHandler(this.textBoxLog_TextChanged);
@@ -92,6 +93,7 @@
             this.bWorkerMain.WorkerReportsProgress = true;
             this.bWorkerMain.WorkerSupportsCancellation = true;
             this.bWorkerMain.DoWork += new System.ComponentModel.DoWorkEventHandler(this.bWorkerMain_DoWork);
+            this.bWorkerMain.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.bWorkerMain_ProgressChanged);
             this.bWorkerMain.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.bWorkerMain_RunWorkerCompleted);
             // 
             // textBoxAddress
@@ -131,11 +133,21 @@
             this.textBoxOffset.Text = "1FFFF";
             this.textBoxOffset.WordWrap = false;
             // 
+            // progressBarWorker
+            // 
+            this.progressBarWorker.Location = new System.Drawing.Point(366, 148);
+            this.progressBarWorker.Name = "progressBarWorker";
+            this.progressBarWorker.Size = new System.Drawing.Size(334, 23);
+            this.progressBarWorker.Step = 1;
+            this.progressBarWorker.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            this.progressBarWorker.TabIndex = 8;
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(712, 417);
+            this.Controls.Add(this.progressBarWorker);
             this.Controls.Add(this.textBoxOffset);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBoxAddress);
@@ -168,6 +180,7 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox textBoxOffset;
+        private System.Windows.Forms.ProgressBar progressBarWorker;
     }
 }
 

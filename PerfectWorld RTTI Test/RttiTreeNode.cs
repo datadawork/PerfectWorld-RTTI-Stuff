@@ -6,7 +6,9 @@ namespace PerfectWorld_RTTI_Test {
         public RttiObject RttiObject { get; set; }
 
         public RttiTreeNode(RttiObject rttiObject) {
-            Text = rttiObject.Offset != -1 ? $"{rttiObject.Offset:X4} {rttiObject.Name}" : rttiObject.Name;
+            if (rttiObject.ObjectLocator != null)
+                Text = rttiObject.Offset != -1 ? $"{rttiObject.Offset:X4} {rttiObject.Name}" : rttiObject.Name;
+            else Text = "Invalid";
             RttiObject = rttiObject;
             Nodes.Add(new TreeNode(Text) {Name = "dummy"});
         }

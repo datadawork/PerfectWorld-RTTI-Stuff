@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Runtime;
 using System.Windows.Forms;
 
 namespace PerfectWorld_RTTI_Test
@@ -30,6 +31,7 @@ namespace PerfectWorld_RTTI_Test
         
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e) {
             if(Core.isLoaded) Core.Unload();
+            if(bWorkerMain.IsBusy) bWorkerMain.CancelAsync();
         }
         
         private void textBoxLog_TextChanged(object sender, EventArgs e) {
@@ -58,7 +60,6 @@ namespace PerfectWorld_RTTI_Test
                 treeViewClassTree.Nodes.Clear();
                 treeViewClassTree.Nodes.Add(RootNode);
                 RootNode.Expand();
-                //bWorkerMain.RunWorkerAsync(RootNode);
                 buttonStartStop.Text = "Stop";
             } else {
                 if (bWorkerMain.CancellationPending) return;
@@ -74,18 +75,19 @@ namespace PerfectWorld_RTTI_Test
             }
             if (e.Argument is RttiTreeNode node) {
                 var nodeList = new List<RttiTreeNode>();
-                var sw = Stopwatch.StartNew();
                 Logging.Log($"Searching {MaxOffset / 4} addresses ...");
-                sw.Start();
+                var sw = Stopwatch.StartNew();
                 for (var i = 0; i < MaxOffset; i += 4) {
+                    if (bWorkerMain.CancellationPending) break;
+                    bWorkerMain.ReportProgress(i);
                     var x = new RttiObject(node.RttiObject.BaseAddress + i, i);
-                    if (!x.isValid()) continue;
-                    nodeList.Add(new RttiTreeNode(x));
+                    if (x.isValid()) nodeList.Add(new RttiTreeNode(x));
                 }
                 sw.Stop();
                 Logging.Log($"Found {nodeList.Count} classes");
                 Logging.Log($"Time: {sw.Elapsed.TotalMinutes:00}:{sw.Elapsed.Seconds:00}.{sw.Elapsed.Milliseconds:000}");
                 Logging.Log($"{new string('-', 50)}");
+                bWorkerMain.ReportProgress(MaxOffset);
                 e.Result = new object[]{node, nodeList};
                 return;
             }
@@ -95,16 +97,14 @@ namespace PerfectWorld_RTTI_Test
         private void bWorkerMain_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
             buttonStartStop.Text = "Init";
             var res = e.Result as object[];
-            if (res?.Length == 2) {
-                var node = (RttiTreeNode)res[0];
-                var list = (List<RttiTreeNode>)res[1];
-                RttiTreeNode[] arr = list.ToArray();
-                foreach (var treeNode in list) {
-                    node.Nodes.Add(treeNode);
-                }
-                node.FirstNode.Remove();
-                node.Expand();
+            if (res?.Length != 2) return;
+            var node = (RttiTreeNode)res[0];
+            var list = (List<RttiTreeNode>)res[1];
+            foreach (var treeNode in list) {
+                node.Nodes.Add(treeNode);
             }
+            node.FirstNode.Remove();
+            node.Expand();
         }
 
         private void treeViewClassTree_BeforeExpand(object sender, TreeViewCancelEventArgs e) {
@@ -115,18 +115,15 @@ namespace PerfectWorld_RTTI_Test
             }
 
             //Logging.Log(node.GetPointerPath());
-
-            if (!node.Nodes.ContainsKey("dummy")) return;
+            if (!node.Nodes.ContainsKey("dummy") || bWorkerMain.IsBusy) return;
             node.FirstNode.Text = "Loading ...";
             buttonStartStop.Text = "Stop";
             bWorkerMain.RunWorkerAsync(node);
-            /*
-            foreach (var child in GetChildObjects(node.RttiObject)) {
-                node.Nodes.Add(new RttiTreeNode(child));
-            }
-            */
-            
         }
 
+        private void bWorkerMain_ProgressChanged(object sender, ProgressChangedEventArgs e) {
+            var progress = decimal.ToInt32((decimal)e.ProgressPercentage / MaxOffset * 100);
+            progressBarWorker.Value = progress;
+        }
     }
 }
